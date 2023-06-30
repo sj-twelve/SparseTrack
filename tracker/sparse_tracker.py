@@ -12,7 +12,7 @@ from .basetrack import BaseTrack, TrackState
 
 class STrack(BaseTrack):
     shared_kalman = KalmanFilter()
-    def __init__(self, tlwh, score):
+    def __init__(self, tlwh, score, landmark):
 
         # wait activate
         self._tlwh = np.asarray(tlwh, dtype=np.float32)
@@ -22,6 +22,7 @@ class STrack(BaseTrack):
         self.deep_vector = self._get_deep_vec()
 
         self.score = score
+        self.landmark = landmark
         self.tracklet_len = 0
         
     def _get_deep_vec(self):
@@ -76,6 +77,7 @@ class STrack(BaseTrack):
         if new_id:
             self.track_id = self.next_id()
         self.score = new_track.score
+        self.landmark = new_track.landmark
 
     def update(self, new_track, frame_id):
         """
@@ -96,6 +98,7 @@ class STrack(BaseTrack):
         self.is_activated = True
 
         self.score = new_track.score
+        self.landmark = new_track.landmark
 
     @staticmethod
     def multi_gmc(stracks, H=np.eye(2, 3)):
@@ -331,6 +334,7 @@ class SparseTracker(object):
         # current detections
         bboxes = output_results.pred_boxes.tensor.cpu().numpy()# x1y1x2y2 
         scores = output_results.scores.cpu().numpy()
+        landmarks = output_results.landmarks.cpu().numpy()
 
         # divide high-score dets and low-scores dets
         remain_inds = scores > self.args.track_thresh
@@ -341,6 +345,8 @@ class SparseTracker(object):
         dets = bboxes[remain_inds]
         scores_keep = scores[remain_inds]
         scores_second = scores[inds_second]
+        landmarks_keep = landmarks[remain_inds]
+        landmarks_second = landmarks[inds_second]
         
         # tracks preprocess
         unconfirmed = []
@@ -354,8 +360,8 @@ class SparseTracker(object):
         
         # init high-score dets
         if len(dets) > 0:
-            detections = [STrack(STrack.tlbr_to_tlwh(tlbr), s) for
-                          (tlbr, s) in zip(dets, scores_keep)]   
+            detections = [STrack(STrack.tlbr_to_tlwh(tlbr), s, lm) for
+                          (tlbr, s, lm) in zip(dets, scores_keep, landmarks_keep)]
         else:
             detections = []
         # get strack_pool   
@@ -386,8 +392,8 @@ class SparseTracker(object):
         # association the untrack to the low score detections
         if len(dets_second) > 0:
             '''Detections'''
-            detections_second = [STrack(STrack.tlbr_to_tlwh(tlbr), s) for
-                          (tlbr, s) in zip(dets_second, scores_second)]
+            detections_second = [STrack(STrack.tlbr_to_tlwh(tlbr), s, lm) for
+                          (tlbr, s, lm) in zip(dets_second, scores_second, landmarks_second)]
         else:
             detections_second = []
         r_tracked_stracks = [t for t in u_track if t.state == TrackState.Tracked]   
