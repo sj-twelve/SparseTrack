@@ -5,7 +5,7 @@ import os.path as osp
 import copy
 import torch
 import torch.nn.functional as F
-from tracker import pbcvt 
+from ..tracker import pbcvt
 from .kalman_filter import KalmanFilter
 from .matching import *
 from .basetrack import BaseTrack, TrackState
