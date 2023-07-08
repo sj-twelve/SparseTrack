@@ -335,10 +335,10 @@ class SparseTracker(object):
         lost_stracks = []
         removed_stracks = []
         # current detections
-        bboxes = output_results.pred_boxes.tensor.cpu().numpy()# x1y1x2y2
+        bboxes = output_results.pred_boxes.tensor.cpu().numpy()[:, :4]# x1y1x2y2
         scores = output_results.scores.cpu().numpy()
         landmarks = output_results.landmarks.cpu().numpy()
-        bboxes = output_results.pred_boxes.tensor.cpu().numpy()
+        origin_dets = output_results.pred_boxes.tensor.cpu().numpy()
 
         # divide high-score dets and low-scores dets
         remain_inds = scores > self.args.track_thresh
@@ -351,8 +351,8 @@ class SparseTracker(object):
         scores_second = scores[inds_second]
         landmarks_keep = landmarks[remain_inds]
         landmarks_second = landmarks[inds_second]
-        origin_dets_second = bboxes[inds_second]
-        origin_dets = bboxes[remain_inds]
+        origin_dets_second = origin_dets[inds_second]
+        origin_dets = origin_dets[remain_inds]
 
         # tracks preprocess
         unconfirmed = []
